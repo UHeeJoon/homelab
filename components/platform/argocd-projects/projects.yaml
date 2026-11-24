@@ -1,5 +1,7 @@
-# App-of-Apps 카테고리별 ArgoCD AppProject — UI PROJECTS 필터로 앱을 구분.
-# 지금은 permissive(조직화 목적). destinations 를 좁히면 "이 프로젝트 앱은 이 ns 에만 배포" 가드레일이 됨.
+# Argo CD AppProject — 플랫폼은 분류별 1개, 애플리케이션은 테넌트별 1개.
+# 플랫폼 프로젝트: 소스는 이 저장소와 실제로 쓰는 Helm 저장소만 허용. 배포 대상은 제한하지 않음.
+# 테넌트 프로젝트(layer: tenant): 소스는 테넌트 배포 저장소만, 배포는 테넌트 네임스페이스만, 클러스터 범위 리소스 금지.
+# 새 Helm 차트를 쓰면 해당 프로젝트 sourceRepos 에 저장소를 추가해야 App 이 동기화된다.
 # apps/platform/argocd-projects.yaml(project:default)이 이 매니페스트를 먼저 생성한다.
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -7,7 +9,9 @@ kind: AppProject
 metadata: { name: platform, namespace: cicd } # AppProject 는 ArgoCD 가 설치된 ns(cicd)에
 spec:
   description: "플랫폼 — ns·rbac·netpol·StorageClass·ClusterSecretStore·keycloak·projects"
-  sourceRepos: ["*"] # 이 프로젝트 앱이 배포 소스로 쓸 수 있는 git/helm repo (좁히면 가드레일)
+  sourceRepos:
+    - https://github.com/UHeeJoon/homelab.git
+    - https://charts.bitnami.com/bitnami
   destinations: [{ server: "*", namespace: "*" }] # 배포 허용 대상 클러스터/네임스페이스
   clusterResourceWhitelist: [{ group: "*", kind: "*" }] # 생성 허용 cluster-scoped 리소스 종류
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }] # 생성 허용 namespaced 리소스 종류
@@ -17,7 +21,15 @@ kind: AppProject
 metadata: { name: operators, namespace: cicd }
 spec:
   description: "오퍼레이터 — longhorn·vault·eso·cnpg·strimzi·eck·minio-operator"
-  sourceRepos: ["*"]
+  sourceRepos:
+    - https://github.com/UHeeJoon/homelab.git
+    - https://charts.longhorn.io
+    - https://charts.external-secrets.io
+    - https://helm.releases.hashicorp.com
+    - https://cloudnative-pg.github.io/charts
+    - https://strimzi.io/charts/
+    - https://helm.elastic.co
+    - https://operator.min.io
   destinations: [{ server: "*", namespace: "*" }]
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
@@ -27,7 +39,8 @@ kind: AppProject
 metadata: { name: secrets, namespace: cicd }
 spec:
   description: "시크릿 — ExternalSecret(Vault→ESO)"
-  sourceRepos: ["*"]
+  sourceRepos:
+    - https://github.com/UHeeJoon/homelab.git
   destinations: [{ server: "*", namespace: "*" }]
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
@@ -37,7 +50,10 @@ kind: AppProject
 metadata: { name: data, namespace: cicd }
 spec:
   description: "데이터 — postgresql·mongodb·redis·kafka·elasticsearch·minio"
-  sourceRepos: ["*"]
+  sourceRepos:
+    - https://github.com/UHeeJoon/homelab.git
+    - https://charts.bitnami.com/bitnami
+    - https://operator.min.io
   destinations: [{ server: "*", namespace: "*" }]
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
@@ -47,7 +63,10 @@ kind: AppProject
 metadata: { name: observability, namespace: cicd }
 spec:
   description: "관측 — prometheus·loki·alloy·tempo·kibana"
-  sourceRepos: ["*"]
+  sourceRepos:
+    - https://github.com/UHeeJoon/homelab.git
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
   destinations: [{ server: "*", namespace: "*" }]
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
@@ -57,7 +76,8 @@ kind: AppProject
 metadata: { name: networking, namespace: cicd }
 spec:
   description: "네트워킹 — Gateway·HTTPRoute"
-  sourceRepos: ["*"]
+  sourceRepos:
+    - https://github.com/UHeeJoon/homelab.git
   destinations: [{ server: "*", namespace: "*" }]
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
