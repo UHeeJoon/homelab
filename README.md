@@ -27,7 +27,7 @@ Argo CD 화면에서는 AppProject(분류별 1개)로 묶어서 봅니다.
 
 | 분류 | 구성 요소 |
 |---|---|
-| platform | namespaces, rbac, network-policies, storage-classes, argocd-projects, keycloak |
+| platform | namespaces, rbac, network-policies, storage-classes, argocd-projects, keycloak, tenant-apps |
 | operators | longhorn, external-secrets, vault, cloudnative-pg, strimzi, eck, minio-operator |
 | secrets | cluster-secret-store, 네임스페이스별 ExternalSecret |
 | data | minio, postgresql, mongodb, redis, kafka, elasticsearch |
@@ -35,6 +35,14 @@ Argo CD 화면에서는 AppProject(분류별 1개)로 묶어서 봅니다.
 | networking | gateway, httproutes, lb-ipam |
 
 차트 버전은 각 `apps/*.yaml`의 `targetRevision`을 보면 됩니다.
+
+## 애플리케이션
+
+`tenant-apps`의 ApplicationSet `sapari-apps`가 GitLab 저장소의 `components/<앱>/` 폴더마다 `sapari-<앱>` App을 만듭니다.
+이 App들은 AppProject `sapari`에 묶여 있어서 GitLab 저장소만 소스로 쓸 수 있고, `frontend`, `backend` 네임스페이스에만 배포할 수 있습니다.
+클러스터 범위 리소스(Namespace, CRD 등)는 만들 수 없습니다.
+
+새 앱을 추가하려면 여기서 네임스페이스를 만들고 AppProject `sapari`의 destinations에 넣은 뒤, GitLab 저장소에 폴더를 추가합니다.
 
 ## 클러스터
 

@@ -62,16 +62,6 @@ spec:
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
 ---
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata: { name: frontend, namespace: cicd }
-spec:
-  description: "프론트엔드 — sapari-fe (향후 backend 추가 시 분리)"
-  sourceRepos: ["*"]
-  destinations: [{ server: "*", namespace: "*" }]
-  clusterResourceWhitelist: [{ group: "*", kind: "*" }]
-  namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
----
 # [테넌트] sapari — 소스는 GitLab 애플리케이션 저장소만, 배포는 앱 네임스페이스만
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
