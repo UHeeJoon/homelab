@@ -21,10 +21,10 @@ enableIPv4Masquerade: true
 # ── CNI: Cilium 단독 ──
 cni:
   customConf: false
-  uninstall: false        # agent 재시작/업그레이드 때 CNI conf 보존
+  uninstall: false # agent 재시작/업그레이드 때 CNI conf 보존
   exclusive: true
 operator:
-  replicas: 1             # 2노드 홈랩
+  replicas: 1 # 2노드 홈랩
   unmanagedPodWatcher:
     restart: true
   resources:
@@ -55,15 +55,15 @@ hubble:
       requests: {cpu: 10m, memory: 64Mi}
       limits: {memory: 128Mi}
   ui:
-    enabled: true         # hubble.ascode.click (admin-gateway HTTPRoute)
+    enabled: true # hubble.ascode.click (admin-gateway HTTPRoute)
     frontend:
       resources:
         requests: {cpu: 10m, memory: 32Mi}
         limits: {memory: 64Mi}
     backend:
       resources:
-        requests: {cpu: 10m, memory: 32Mi}
-        limits: {memory: 64Mi}
+        requests: {cpu: 50m, memory: 64Mi}
+        limits: {memory: 256Mi}
 
 # cilium-agent (노드당 1)
 resources:

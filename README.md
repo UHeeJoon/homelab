@@ -66,12 +66,10 @@ kubectl apply -f bootstrap/root-app.yaml
 
 # 4. Vault unseal (Vault가 뜬 뒤)
 kubectl -n security exec -it vault-0 -- vault operator unseal
-
-# 5. GitLab 애플리케이션 저장소 읽기 자격 (Vault, External Secrets가 준비된 뒤)
-kubectl apply -f bootstrap/gitlab-repo-externalsecret.yaml
 ```
 
 4번 전까지는 Vault를 쓰는 App들이 실패와 재시도를 반복하는데, 정상입니다. unseal하면 알아서 맞춰집니다.
+GitLab 애플리케이션 저장소의 읽기 자격도 이때 `cicd-secrets` App이 Vault(`secret/cicd/gitlab`)에서 만들어 줍니다.
 
 ## 운영 메모
 
