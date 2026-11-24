@@ -1,0 +1,60 @@
+# 플랫폼 저장소 CI — main 에서 검사를 통과한 커밋만 release 로 fast-forward 승격한다.
+# Argo CD 는 release 만 읽는다. 앱 이미지 서명 검증은 GitLab 애플리케이션 저장소(sapari-helm-manifest)의 몫.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: YAML 파싱
+        run: |
+          find apps bootstrap components -name '*.yaml' -print0 \
+            | xargs -0 -n1 yq e 'true' > /dev/null
+      - name: 플랫폼/애플리케이션 경계
+        # 저장소 분리 완료 후 저장소 변수 ENFORCE_BOUNDARY=true 로 활성화
+        if: ${{ vars.ENFORCE_BOUNDARY == 'true' }}
+        run: |
+          # 1) 플랫폼 저장소에 자사 앱 이미지 금지
+          if grep -rnE 'registry\.gitlab\.com/sagopanda/' apps components bootstrap; then
+            echo "::error::앱 매니페스트는 GitLab sapari-helm-manifest 에 둔다"; exit 1
+          fi
+          # 2) GitLab 을 소스(repoURL)로 쓰는 것은 테넌트 ApplicationSet 만 허용
+          if grep -rnE 'repoURL:\s*\S*gitlab\.com' apps components bootstrap \
+               --exclude-dir=tenant-apps; then
+            echo "::error::플랫폼 App 은 GitHub homelab 과 Helm 저장소만 소스로 쓴다"; exit 1
+          fi
+
+  promote:
+    needs: [secret-scan, validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.PROMOTE_DEPLOY_KEY }}
+      - name: release 로 fast-forward
+        # force 가 아니므로 release 가 main 의 조상이 아니면 실패한다 (의도된 동작)
+        run: git push origin HEAD:refs/heads/release
