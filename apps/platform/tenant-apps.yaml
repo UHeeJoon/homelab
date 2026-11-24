@@ -1,0 +1,19 @@
+# apps/platform/tenant-apps.yaml — 테넌트 ApplicationSet 을 배포하는 App
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tenant-apps
+  namespace: cicd
+  labels: { category: platform }
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/UHeeJoon/homelab.git
+    targetRevision: release
+    path: components/platform/tenant-apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cicd
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true ]

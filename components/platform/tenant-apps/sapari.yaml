@@ -1,0 +1,51 @@
+# GitLab sapari-helm-manifest 의 components/<앱> 폴더마다 Argo CD App 을 하나씩 만든다.
+# - 이름 sapari-<앱>, 네임스페이스 = 폴더 이름, project 는 sapari 고정
+# - AppProject sapari 의 destinations 에 없는 네임스페이스는 App 이 생겨도 배포가 거부된다
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: sapari-apps
+  namespace: cicd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://gitlab.com/sagopanda/sapari-helm-manifest.git
+        revision: release
+        directories:
+          - path: 'components/*'
+          # 임시: GitLab release 가 플랫폼 파일 삭제 커밋(4498734)으로 승격되기 전까지 제외.
+          # 승격 후 아래 6줄 삭제 (저장소 분리 런북 Phase 6)
+          - { path: components/platform, exclude: true }
+          - { path: components/operators, exclude: true }
+          - { path: components/secrets, exclude: true }
+          - { path: components/data, exclude: true }
+          - { path: components/observability, exclude: true }
+          - { path: components/networking, exclude: true }
+  syncPolicy:
+    applicationsSync: create-update # ApplicationSet 이 App 을 지우지 않음
+    preserveResourcesOnDeletion: true # App 이 지워져도 리소스는 남김
+  template:
+    metadata:
+      name: 'sapari-{{ .path.basename }}'
+      labels:
+        layer: tenant
+        source: gitlab
+        tenant: sapari
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
+    spec:
+      project: sapari
+      source:
+        repoURL: https://gitlab.com/sagopanda/sapari-helm-manifest.git
+        targetRevision: release
+        path: '{{ .path.path }}'
+        directory:
+          recurse: true
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .path.basename }}'
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ ServerSideApply=true ]
