@@ -8,7 +8,7 @@ metadata:
   namespace: monitoring
 spec:
   version: 8.17.0 # ★ elasticsearch.yaml 의 version과 동일하게 맞출 것
-  count: 1
+  count: 0 # 중지 (ES 중지와 함께). 다시 켤 때 1
   elasticsearchRef:
     name: elasticsearch
     namespace: storage # cross-namespace 연결 (ECK가 자동 처리)

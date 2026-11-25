@@ -14,6 +14,8 @@ spec:
     path: components/data/kafka
     directory:
       recurse: true
+      # 중지: Kafka 리소스를 클러스터에서 뺀다 (PVC 는 deleteClaim: false 로 유지). 다시 켤 때 이 줄 삭제
+      exclude: strimzi-kafka.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: storage # 매니페스트에 ns 가 있으면 그쪽으로

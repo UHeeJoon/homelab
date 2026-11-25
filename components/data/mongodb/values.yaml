@@ -1,6 +1,6 @@
 # storage/mongodb-values.yaml
 architecture: replicaset
-replicaCount: 3
+replicaCount: 0 # 중지 (PVC 유지). 다시 켤 때 3
 
 arbiter:
   enabled: false
