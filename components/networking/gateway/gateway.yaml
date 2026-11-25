@@ -49,4 +49,4 @@ spec:
             matchExpressions:
               # kube-system = hubble-ui (Cilium 네트워크 관측)
               # aiops, mlops = kube-chatops UI (n8n, MLflow), argo = Argo Workflows UI
-              - { key: kubernetes.io/metadata.name, operator: In, values: [cicd, monitoring, security, storage, kube-system, aiops, mlops] }
+              - { key: kubernetes.io/metadata.name, operator: In, values: [cicd, monitoring, security, storage, kube-system, aiops, mlops, argo] }
