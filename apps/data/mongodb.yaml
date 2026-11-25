@@ -6,6 +6,9 @@ kind: Application
 metadata:
   name: mongodb
   namespace: cicd
+  annotations:
+    # StatefulSet volumeClaimTemplates 등 API 서버 기본값을 차이로 보지 않게 한다
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
   labels: { category: data }
 spec:
   project: data
