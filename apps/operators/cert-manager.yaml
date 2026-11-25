@@ -1,0 +1,30 @@
+# apps/operators/cert-manager.yaml — [Helm형 leaf]
+# cert-manager: KServe 웹훅 인증서를 발급한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.21.3
+    helm:
+      valuesObject:
+        crds: { enabled: true, keep: true }
+        resources: { requests: { cpu: 10m, memory: 64Mi }, limits: { memory: 256Mi } }
+        webhook:
+          resources: { requests: { cpu: 10m, memory: 32Mi }, limits: { memory: 128Mi } }
+        cainjector:
+          resources: { requests: { cpu: 10m, memory: 64Mi }, limits: { memory: 256Mi } }
+        prometheus:
+          servicemonitor: { enabled: true }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true ]

@@ -1,0 +1,20 @@
+# apps/operators/kserve-crd.yaml — [Helm형 leaf] 차트=OCI (ghcr.io/kserve/charts)
+# KServe CRD. 컨트롤러(kserve.yaml)와 따로 둬서 CRD 가 먼저 들어가게 한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve-crd
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: ghcr.io/kserve/charts
+    chart: kserve-crd
+    targetRevision: v0.21.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  syncPolicy:
+    automated: { prune: false, selfHeal: true } # CRD 를 지우면 InferenceService 가 모두 지워진다
+    syncOptions: [ ServerSideApply=true ]

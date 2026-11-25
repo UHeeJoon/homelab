@@ -1,0 +1,33 @@
+# apps/operators/kserve.yaml — [Helm형 leaf] 차트=OCI (ghcr.io/kserve/charts)
+# KServe 컨트롤러. Knative/Istio 없이 Standard(RawDeployment) 모드: InferenceService → Deployment + Service.
+# 모델은 클러스터 안에서만 호출한다 (mcp-anomaly) → Ingress/HTTPRoute 를 만들지 않는다.
+# 웹훅 인증서는 cert-manager 가 발급한다 (cert-manager 가 먼저 있어야 함, 없으면 재시도).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: ghcr.io/kserve/charts
+    chart: kserve-resources
+    targetRevision: v0.21.0
+    helm:
+      releaseName: kserve
+      valuesObject:
+        kserve:
+          controller:
+            deploymentMode: Standard
+            imagePullPolicy: IfNotPresent
+            gateway:
+              disableIngressCreation: true
+            resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 512Mi } }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true, SkipDryRunOnMissingResource=true ]
+    retry: { limit: 10, backoff: { duration: 30s, factor: 2, maxDuration: 5m } }

@@ -1,0 +1,41 @@
+# apps/operators/argo-workflows.yaml — [Helm형 leaf]
+# Argo Workflows: 컨트롤러와 UI 는 argo, 워크플로는 테넌트 ns mlops 에서만 돈다 (학습 파이프라인).
+# UI 는 client 인증 (ServiceAccount 토큰으로 로그인). server 모드는 누구나 워크플로를 실행할 수 있어서 쓰지 않는다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-workflows
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-workflows
+    targetRevision: 2.0.18
+    helm:
+      valuesObject:
+        crds: { install: true, keep: true }
+        singleNamespace: false
+        controller:
+          workflowNamespaces: [mlops]
+          resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 512Mi } }
+          metricsConfig: { enabled: true }
+          serviceMonitor: { enabled: true }
+          workflowDefaults:
+            spec:
+              serviceAccountName: argo-workflow
+              ttlStrategy: { secondsAfterCompletion: 604800 } # 7일
+              podGC: { strategy: OnPodSuccess }
+        workflow:
+          serviceAccount: { create: true, name: argo-workflow }
+          rbac: { create: true }
+        server:
+          authModes: [client]
+          resources: { requests: { cpu: 20m, memory: 64Mi }, limits: { memory: 256Mi } }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true ]
