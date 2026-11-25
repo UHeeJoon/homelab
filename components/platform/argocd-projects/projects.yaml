@@ -100,3 +100,24 @@ spec:
   namespaceResourceBlacklist:
     - { group: "", kind: ResourceQuota }
     - { group: "", kind: LimitRange }
+---
+# [테넌트] kube-chatops — 소스는 GitHub kube-chatops-deploy 만, 배포는 테넌트 네임스페이스만
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kube-chatops
+  namespace: cicd
+  labels: { layer: tenant }
+spec:
+  description: "[tenant] kube-chatops AIOps/MLOps (GitHub kube-chatops-deploy)"
+  sourceRepos:
+    - https://github.com/UHeeJoon/kube-chatops-deploy.git
+  destinations:
+    - { server: https://kubernetes.default.svc, namespace: aiops }
+    - { server: https://kubernetes.default.svc, namespace: mcp }
+    - { server: https://kubernetes.default.svc, namespace: demo }
+    - { server: https://kubernetes.default.svc, namespace: mlops }
+  clusterResourceWhitelist: [] # Namespace, CRD, ClusterRole 등은 플랫폼만 만든다
+  namespaceResourceBlacklist:
+    - { group: "", kind: ResourceQuota }
+    - { group: "", kind: LimitRange }

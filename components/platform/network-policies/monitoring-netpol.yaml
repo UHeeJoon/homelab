@@ -26,6 +26,11 @@ spec:
               kubernetes.io/metadata.name: storage
     - to:
         - podSelector: {} # monitoring 내부 통신
+    # 테넌트 네임스페이스 (메트릭 스크레이프, Alertmanager → n8n webhook)
+    - to:
+        - namespaceSelector:
+            matchExpressions:
+              - { key: tenant, operator: Exists }
     - to:
         - namespaceSelector:
             matchLabels:

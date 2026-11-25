@@ -1,0 +1,43 @@
+# GitHub kube-chatops-deploy 의 <네임스페이스>/<앱> 폴더마다 Argo CD App 을 하나씩 만든다.
+# - 이름 kube-chatops-<네임스페이스>-<앱>, 네임스페이스 = 첫 번째 폴더, project 는 kube-chatops 고정
+# - AppProject kube-chatops 의 destinations 에 없는 네임스페이스는 App 이 생겨도 배포가 거부된다
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kube-chatops-apps
+  namespace: cicd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/UHeeJoon/kube-chatops-deploy.git
+        revision: release
+        directories:
+          - path: '*/*'
+          - { path: '.github/*', exclude: true }
+          - { path: 'scripts/*', exclude: true }
+  syncPolicy:
+    applicationsSync: create-update # ApplicationSet 이 App 을 지우지 않음
+    preserveResourcesOnDeletion: true # App 이 지워져도 리소스는 남김
+  template:
+    metadata:
+      name: 'kube-chatops-{{ index .path.segments 0 }}-{{ .path.basename }}'
+      labels:
+        layer: tenant
+        source: github
+        tenant: kube-chatops
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
+    spec:
+      project: kube-chatops
+      source:
+        repoURL: https://github.com/UHeeJoon/kube-chatops-deploy.git
+        targetRevision: release
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ index .path.segments 0 }}'
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ ServerSideApply=true ]
