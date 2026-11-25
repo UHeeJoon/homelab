@@ -10,7 +10,7 @@ sentinel:
     # (명시 안 하면 resourcesPreset 경고 — 프로덕션 비권장)
     resources:
         requests: { cpu: 50m, memory: 64Mi }
-        limits: { cpu: 100m, memory: 128Mi }
+        limits: { cpu: 500m, memory: 256Mi } # 100m 이면 시작 스크립트가 느려 startup probe(5초) 실패
 
 auth:
     enabled: true
