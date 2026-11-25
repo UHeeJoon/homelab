@@ -14,9 +14,11 @@ spec:
     path: components/data/elasticsearch
     directory:
       recurse: true
+      # 중지: ES 를 클러스터에서 뺀다 (PVC 는 volumeClaimDeletePolicy: DeleteOnScaledownOnly 로 유지). 다시 켤 때 이 줄 삭제
+      exclude: elasticsearch.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: storage # 매니페스트에 ns 가 있으면 그쪽으로
   syncPolicy:
-    automated: { prune: true, selfHeal: true }
+    automated: { prune: true, selfHeal: true, allowEmpty: true } # 중지 중이라 리소스 0개 허용
     syncOptions: [ ServerSideApply=true ]

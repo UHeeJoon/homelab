@@ -20,5 +20,5 @@ spec:
     server: https://kubernetes.default.svc
     namespace: storage # 매니페스트에 ns 가 있으면 그쪽으로
   syncPolicy:
-    automated: { prune: true, selfHeal: true }
+    automated: { prune: true, selfHeal: true, allowEmpty: true } # 중지 중이라 리소스 0개 허용
     syncOptions: [ ServerSideApply=true ]
