@@ -1,4 +1,4 @@
-# apps/operators/longhorn.yaml — [Helm형 leaf] 차트=helm repo (기본값 설치)
+# apps/operators/longhorn.yaml — [Helm형 leaf] 차트=helm repo
 # Longhorn 분산 블록 스토리지 + CSI 드라이버
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -12,6 +12,12 @@ spec:
     repoURL: https://charts.longhorn.io
     chart: longhorn
     targetRevision: 1.11.2
+    helm:
+      valuesObject:
+        defaultSettings:
+          # 노드 간 네트워크가 WiFi 라 지연이 튄다 (plan.md 13장 9번). 직결선 연결 후 기본값(8, 5)으로 되돌린다.
+          engineReplicaTimeout: '{"v1":"30","v2":"30"}'
+          concurrentReplicaRebuildPerNodeLimit: 1
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
