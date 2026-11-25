@@ -62,3 +62,30 @@ spec:
             - { port: "10250", protocol: TCP }
             - { port: "9100", protocol: TCP }
     - toEntities: [kube-apiserver]
+---
+# kube-chatops 테넌트 → 관측 스택 (2026-11-26)
+# mcp ns 의 MCP 서버가 Prometheus(9090), Loki(3100) 를 조회하고, aiops ns 의 agent 가 Tempo 로 트레이스(OTLP 4317/4318)를 보낸다.
+# 포트는 목적지 파드 기준이라 각 ns 는 해당 포트를 여는 파드에만 닿는다.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-kube-chatops-ingress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app.kubernetes.io/name, operator: In, values: [prometheus, loki, tempo] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: mcp }
+      ports:
+        - { port: 9090, protocol: TCP }
+        - { port: 3100, protocol: TCP }
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: aiops }
+      ports:
+        - { port: 4317, protocol: TCP }
+        - { port: 4318, protocol: TCP }
