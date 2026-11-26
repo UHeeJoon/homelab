@@ -33,8 +33,12 @@ data:
     mc admin user add local "$MLOPS_ACCESS_KEY" "$MLOPS_SECRET_KEY" > /dev/null
     # 이미 붙어 있으면 오류를 내므로 결과는 아래에서 따로 확인한다
     mc admin policy attach local mlops-rw --user "$MLOPS_ACCESS_KEY" > /dev/null 2>&1 || true
-    mc admin user info local "$MLOPS_ACCESS_KEY" --json | grep -q '"policyName": *"[^"]*mlops-rw' \
-      || { echo "정책 mlops-rw 가 사용자에 붙지 않았다"; exit 1; }
+    # 이미지에 grep 이 없어 셸 패턴으로 확인한다
+    info=$(mc admin user info local "$MLOPS_ACCESS_KEY" --json)
+    case "$info" in
+      *'"policyName"'*mlops-rw*) ;;
+      *) echo "정책 mlops-rw 가 사용자에 붙지 않았다"; exit 1 ;;
+    esac
     echo "완료: 버킷 mlops, 사용자 $MLOPS_ACCESS_KEY, 정책 mlops-rw"
 ---
 apiVersion: batch/v1
