@@ -17,7 +17,7 @@ spec:
     - toEntities:
         - kube-apiserver
 ---
-# Prometheus 노드 스크레이프 — kubelet/cAdvisor(10250), node-exporter(9100)
+# Prometheus 노드 스크레이프 — kubelet/cAdvisor(10250), node-exporter(9100), Tetragon(2112)
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
 metadata:
@@ -36,3 +36,4 @@ spec:
         - ports:
             - { port: "10250", protocol: TCP }
             - { port: "9100", protocol: TCP }
+            - { port: "2112", protocol: TCP } # Tetragon (hostNetwork)

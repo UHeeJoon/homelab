@@ -44,7 +44,7 @@ spec:
         - port: 443 # 외부 알림 (Slack, PagerDuty 등)
         - port: 80
 ---
-# 노드 스크레이프(kubelet/cAdvisor 10250, node-exporter 9100) + kube-apiserver(SD/operator)
+# 노드 스크레이프(kubelet/cAdvisor 10250, node-exporter 9100, Tetragon 2112) + kube-apiserver(SD/operator)
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -61,6 +61,7 @@ spec:
         - ports:
             - { port: "10250", protocol: TCP }
             - { port: "9100", protocol: TCP }
+            - { port: "2112", protocol: TCP } # Tetragon (hostNetwork)
     - toEntities: [kube-apiserver]
 ---
 # kube-chatops 테넌트 → 관측 스택 (2026-11-26)
