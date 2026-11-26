@@ -26,7 +26,7 @@ spec:
             {"event_set":["PROCESS_KPROBE","PROCESS_TRACEPOINT","PROCESS_LSM","PROCESS_UPROBE"]}
             {"event_set":["PROCESS_EXEC"],"namespace":["demo"]}
           prometheus:
-            serviceMonitor: { enabled: true }
+            serviceMonitor: { enabled: true, scrapeInterval: 15s } # 차단 → Slack 보고를 1분 안으로 (60s 면 수집만 최대 1분)
         export:
           resources: { requests: { cpu: 10m, memory: 32Mi }, limits: { memory: 128Mi } }
         tetragonOperator:
