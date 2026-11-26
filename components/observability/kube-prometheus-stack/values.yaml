@@ -49,7 +49,39 @@ grafana:
           url: http://tempo.monitoring.svc.cluster.local:3200
 
 alertmanager:
+    # ── 플랫폼 알림 → Slack (11-27) ──
+    # warning·critical 을 Slack 채널에 그대로 올린다 (AI 조사 없음).
+    # kube_chatops="true" 알림은 테넌트(demo)의 AlertmanagerConfig 가 n8n → 에이전트 조사로 보내므로 여기서는 뺀다 (중복 방지).
+    # 봇 토큰: ExternalSecret alertmanager-slack (components/secrets/monitoring) → 아래 secrets 로 파일 마운트.
+    config:
+        route:
+            receiver: "null"
+            group_by: [alertname, namespace]
+            group_wait: 30s
+            group_interval: 5m
+            repeat_interval: 12h
+            routes:
+                - receiver: "null"
+                  matchers: ['alertname =~ "Watchdog|InfoInhibitor"']
+                - receiver: slack-platform
+                  matchers: ['severity =~ "warning|critical"', 'kube_chatops != "true"']
+        receivers:
+            - name: "null"
+            - name: slack-platform
+              slack_configs:
+                  - api_url: https://slack.com/api/chat.postMessage
+                    channel: C0CLECWG67R # kube-chatops 알림 채널 (봇이 들어가 있는 채널이어야 함)
+                    send_resolved: true
+                    http_config:
+                        authorization:
+                            credentials_file: /etc/alertmanager/secrets/alertmanager-slack/bot_token
+                    color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}danger{{ else }}warning{{ end }}{{ else }}good{{ end }}'
+                    title: '{{ if eq .Status "firing" }}[발생]{{ else }}[해소]{{ end }} {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }}{{ with .CommonLabels.namespace }}, {{ . }}{{ end }})'
+                    text: |-
+                        {{ range .Alerts }}• {{ or .Annotations.summary .Annotations.description .Labels.alertname }}{{ with .Labels.pod }} — `{{ . }}`{{ end }}{{ with .Labels.job }} ({{ . }}){{ end }}
+                        {{ end }}
     alertmanagerSpec:
+        secrets: [alertmanager-slack]
         storage:
             volumeClaimTemplate:
                 spec:
