@@ -1,0 +1,27 @@
+# 이미지 digest 고정 검사 (S-6, 11-27, Audit).
+# 태그(:latest, :1.2)는 같은 이름으로 내용이 바뀔 수 있다. 테넌트 ns 의 파드가 @sha256 으로 고정됐는지 기록한다.
+# 자체 이미지는 CI 가 digest 로 올리므로 통과해야 하고, 외부 이미지(n8n, 차트가 넣는 사이드카 등)가 어디서 걸리는지 보는 용도다.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-image-digest
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore
+  evaluation:
+    background:
+      enabled: true
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - { key: kubernetes.io/metadata.name, operator: In, values: [aiops, mcp, mlops, demo] }
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, c.image.contains('@sha256:')) &&
+        object.spec.?initContainers.orValue([]).all(c, c.image.contains('@sha256:'))
+      message: digest(@sha256)로 고정하지 않은 이미지가 있다

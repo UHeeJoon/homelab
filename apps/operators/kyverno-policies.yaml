@@ -1,0 +1,20 @@
+# Kyverno 정책 (S-6). CRD 가 먼저 있어야 해서 kyverno 앱과 나누고 재시도한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: https://github.com/UHeeJoon/homelab.git
+    targetRevision: release
+    path: components/operators/kyverno-policies
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true, SkipDryRunOnMissingResource=true ]
+    retry: { limit: 10, backoff: { duration: 30s, maxDuration: 5m } }

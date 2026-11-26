@@ -1,0 +1,42 @@
+# 자체 이미지의 서명 확인 (S-6, 11-27).
+# kube-chatops 이미지는 GitHub Actions(build.yml, main 브랜치)가 빌드하고 cosign keyless 로 서명한다.
+# 지금까지 서명 확인은 CI 안에서만 했다 → CI 를 거치지 않고 레지스트리에 올라온 이미지나 매니페스트를 직접 고친 이미지는 그대로 배포됐다.
+# 여기서는 테넌트 ns 에 뜨는 파드의 자체 이미지가 "그 워크플로가 서명한 것" 인지 본다.
+#
+# 단계: Audit(기록만) → 위반 0 이 며칠 이어지면 validationActions 를 [Deny] 로, failurePolicy 를 Fail 로 바꾼다.
+# 결과: kubectl get policyreport -A, 지표 kyverno_policy_results
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: verify-kube-chatops-images
+spec:
+  validationActions: [Audit]
+  failurePolicy: Ignore # Kyverno 가 죽거나 sigstore 에 못 닿아도 배포를 막지 않는다 (Audit 단계)
+  webhookConfiguration:
+    timeoutSeconds: 15
+  evaluation:
+    background:
+      enabled: true # 이미 떠 있는 파드도 보고서에 넣는다
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - { key: kubernetes.io/metadata.name, operator: In, values: [aiops, mcp, mlops, demo] }
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchImageReferences:
+    - glob: ghcr.io/uheejoon/kube-chatops/*
+  attestors:
+    - name: ci
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              subject: https://github.com/UHeeJoon/kube-chatops/.github/workflows/build.yml@refs/heads/main
+        ctlog:
+          url: https://rekor.sigstore.dev
+  validations:
+    - expression: images.containers.map(image, verifyImageSignatures(image, [attestors.ci])).all(e, e > 0)
+      message: 자체 이미지에 build.yml(main) 의 cosign 서명이 없다

@@ -1,0 +1,53 @@
+# Kyverno (S-6, 11-27). admission 웹훅과 보고서 컨트롤러만 돈다.
+# 들어오는 것: API 서버 → 웹훅(9443), Prometheus → 지표(8000)
+# 나가는 것: DNS, API 서버, 이미지 서명 확인용 외부 443 (ghcr.io 레지스트리, sigstore 의 fulcio·rekor·tuf)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kyverno-netpol
+  namespace: kyverno
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { port: 8000, protocol: TCP }
+  egress:
+    - to:
+        - podSelector: {}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    # 서명 확인: 레지스트리와 sigstore (IP 가 고정이 아니라 443 전체를 연다. 클러스터 안 대역은 제외)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+      ports:
+        - { port: 443, protocol: TCP }
+---
+# 예약 신원(API 서버, 노드)은 ipBlock 으로 매칭되지 않아 entity 로 허용한다
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: cilium-netpol
+  namespace: kyverno
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEntities: [kube-apiserver, host, remote-node]
+      toPorts:
+        - ports:
+            - { port: "9443", protocol: TCP }
+  egress:
+    - toEntities: [kube-apiserver]

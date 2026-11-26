@@ -1,0 +1,42 @@
+# Kyverno (보안 S-6, 11-27): 배포 시점 정책. 범위를 좁혀 쓴다.
+#   - 자체 이미지(ghcr.io/uheejoon/kube-chatops/*)의 cosign 서명 확인, digest 고정 검사. 정책은 components/operators/kyverno-policies
+#   - 변형(mutate)·생성(generate)·정리(cleanup)는 쓰지 않는다 → background, cleanup 컨트롤러를 끈다 (admission + reports 만)
+# 웹훅이 죽어도 배포가 멈추지 않게: kube-system·cicd 는 웹훅 대상에서 빼고(Argo CD, CNI 는 영향 없음), 정책은 failurePolicy Ignore + Audit 로 시작한다.
+# 런타임(실행 중 침해)은 Tetragon 이 본다. 둘은 보완 관계다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: https://kyverno.github.io/kyverno/
+    chart: kyverno
+    targetRevision: 3.10.0 # Kyverno v1.20.0
+    helm:
+      valuesObject:
+        config:
+          webhooks:
+            namespaceSelector:
+              matchExpressions:
+                - { key: kubernetes.io/metadata.name, operator: NotIn, values: [kube-system, cicd] }
+        admissionController:
+          replicas: 1 # 노드 2대. 죽어도 failurePolicy Ignore 라 배포는 계속된다
+          container:
+            resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
+          serviceMonitor: { enabled: true, additionalLabels: { release: kube-prometheus } }
+        reportsController:
+          replicas: 1
+          resources: { requests: { cpu: 20m, memory: 64Mi }, limits: { memory: 256Mi } }
+          serviceMonitor: { enabled: true, additionalLabels: { release: kube-prometheus } }
+        backgroundController: { enabled: false }
+        cleanupController: { enabled: false }
+        webhooksCleanup: { enabled: false } # helm 삭제 훅. Argo CD 에서는 쓰지 않는다
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true ] # CRD 가 커서 client-side apply 의 주석 크기 한도를 넘는다
