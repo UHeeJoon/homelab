@@ -20,6 +20,11 @@ spec:
       valuesObject:
         tetragon:
           resources: { requests: { cpu: 50m, memory: 192Mi }, limits: { memory: 768Mi } }
+          # 쓰기 거부(Override)를 쓰려면 kprobe_multi 를 꺼야 한다. 이 커널(el10 6.12)은 bpf_override_return 이 없어
+          # Tetragon 이 fmod_ret 로 대신하는데, kprobe_multi 로 붙인 함수는 Override 가 거부된다.
+          # BPF LSM 훅(lsmhooks)은 Tetragon 1.8 의 프로그램이 이 커널 검증기 한도를 넘어 로드되지 않는다 (11-27 확인).
+          extraArgs:
+            disable-kprobe-multi: "true"
           # Loki 로 보내는 양을 줄인다: 정책에 걸린 이벤트는 전부, 실행 기록은 demo 만 (조사 근거용).
           # 기본값은 모든 ns 의 모든 실행·종료를 내보내 로그가 크게 는다.
           exportAllowList: |-
