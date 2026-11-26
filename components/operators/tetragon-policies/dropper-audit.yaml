@@ -1,0 +1,19 @@
+# 투하한 파일 실행 의심 (클러스터 전체, 기록만): 임시 경로나 메모리 파일(memfd)에 있는 프로그램 실행.
+# 공격자는 셸 실행 규칙을 피하려고 실행 파일을 /tmp 등에 내려받아 바로 띄우거나, 디스크에 남기지 않고 memfd 로 실행한다.
+# 차단은 demo 의 TracingPolicyNamespaced dropper-block 이 한다 (memfd 는 runc 자기 복제와 겹칠 수 있어 여기서 먼저 관찰).
+# /run 은 노드 프로세스가 정상적으로 많이 써서 클러스터 기록에서는 뺀다.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: dropper-audit
+spec:
+  kprobes:
+    - call: security_bprm_creds_for_exec
+      syscall: false
+      args:
+        - { index: 0, type: linux_binprm }
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Prefix
+              values: [/tmp/, /dev/shm/, /var/tmp/, /memfd:]
