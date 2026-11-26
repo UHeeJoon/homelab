@@ -109,6 +109,26 @@ metrics:
     namespace: monitoring
     labels:
       release: kube-prometheus-stack # Prometheus 가 이 라벨로 ServiceMonitor 를 선택 → 실제 release 명과 일치 필수
+  # 로그인 무차별 대입 (11-27). 지표는 KC_EVENT_METRICS_USER_ENABLED 로 켬. 이 차트는 groups 를 tpl 로 렌더링해서
+  # 알림 템플릿의 중괄호는 {{ `{{` }} 로 감싼다. 플랫폼 알림이라 n8n(테넌트) 으로는 가지 않고 Grafana·Alertmanager 에서 본다.
+  prometheusRule:
+    enabled: true
+    labels:
+      release: kube-prometheus # Prometheus ruleSelector (ServiceMonitor 와 다름)
+    groups:
+      - name: keycloak-login
+        rules:
+          - alert: KeycloakLoginFailuresHigh
+            # 5분에 로그인 실패 20건 초과 (realm 단위). 새 시계열은 increase()=0 이라 처음 나타난 값도 센다.
+            expr: |
+              sum by (namespace, realm) (
+                (increase(keycloak_user_events_total{event="login", error!=""}[5m]) unless (keycloak_user_events_total{event="login", error!=""} unless keycloak_user_events_total{event="login", error!=""} offset 5m))
+                or (keycloak_user_events_total{event="login", error!=""} unless keycloak_user_events_total{event="login", error!=""} offset 5m)
+              ) > 20
+            labels: { severity: warning, category: security }
+            annotations:
+              summary: 'keycloak realm {{ `{{` }} $labels.realm {{ `}}` }} 로그인 실패 5분 {{ `{{` }} $value | printf "%.0f" {{ `}}` }}건'
+              description: '무차별 대입 의심. 어떤 계정·IP 인지는 keycloak 로그(type=LOGIN_ERROR). realm 의 Brute Force Detection 이 켜져 있으면 계정이 잠긴다.'
 
 networkPolicy:
   enabled: false # 차트 netpol 끄고 components/platform/network-policies 에서 중앙 관리
