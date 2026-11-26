@@ -57,3 +57,20 @@ alertmanager:
                     resources:
                         requests:
                             storage: 1Gi
+
+# ── 수집하지 않는 대상 (11-27) ──
+# 수집이 안 되는데 켜 두면 TargetDown, etcdInsufficientMembers(critical) 같은 거짓 알림만 만든다.
+kubeProxy:
+    enabled: false # kube-proxy 없음 (Cilium kubeProxyReplacement)
+# kubeadm 기본값은 아래 셋을 127.0.0.1 에만 연다 → 다른 파드에서 수집 불가 (연결 거부).
+# 켜려면 master 에서 ① /etc/kubernetes/manifests 의 controller-manager·scheduler 에 --bind-address=0.0.0.0,
+# etcd 에 --listen-metrics-urls=http://0.0.0.0:2381 ② monitoring-netpol 의 노드 포트에 10257, 10259, 2381 추가 후 true 로.
+kubeControllerManager:
+    enabled: false
+kubeScheduler:
+    enabled: false
+kubeEtcd:
+    enabled: false
+defaultRules:
+    disabled:
+        KubeCPUOvercommit: true # 노드 2대라 "한 대가 죽으면 요청량을 못 받는다" 가 구조상 항상 참

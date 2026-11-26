@@ -31,6 +31,23 @@ spec:
         - namespaceSelector:
             matchExpressions:
               - { key: tenant, operator: Exists }
+    # 플랫폼 구성 요소의 지표 포트. 여기 없으면 수집이 시간 초과로 실패하고 TargetDown 이 계속 뜬다
+    # (11-27 Hubble 흐름 지표의 정책 차단으로 발견: coredns, argo workflow-controller, cert-manager 3종).
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+      ports:
+        - { port: 9153, protocol: TCP } # coredns
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: argo }
+      ports:
+        - { port: 9090, protocol: TCP } # workflow-controller
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: cert-manager }
+      ports:
+        - { port: 9402, protocol: TCP } # controller, cainjector, webhook
     # keycloak 관리 포트(9000, /metrics). 차트에서 metrics 를 켰는데 이 허용이 없어 수집이 시간 초과로 계속 실패했다 (11-27 발견).
     # 로그인 실패 수(무차별 대입) 같은 지표를 여기서 본다.
     - to:
