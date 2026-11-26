@@ -1,0 +1,21 @@
+# apps/operators/tetragon-policies.yaml — [매니페스트형 leaf] 클러스터 전체 TracingPolicy (기록만, 차단 없음)
+# CRD 는 tetragon 오퍼레이터가 만든다 → 처음 sync 때 CRD 가 없으면 재시도로 따라온다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tetragon-policies
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: https://github.com/UHeeJoon/homelab.git
+    targetRevision: release
+    path: components/operators/tetragon-policies
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true, SkipDryRunOnMissingResource=true ]
+    retry: { limit: 10, backoff: { duration: 30s, maxDuration: 5m } }

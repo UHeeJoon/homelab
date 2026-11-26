@@ -1,0 +1,22 @@
+# 웹셸 의심 (클러스터 전체, 기록만): 웹 서버 프로세스(java, php, apache, nginx)가 셸·다운로더를 실행하려 하면 이벤트.
+# 웹 서버가 셸을 띄울 정상 이유는 거의 없다. 공격 방식(업로드한 웹셸, Log4Shell 같은 원격 실행)과 상관없이 결국 이 지점을 지난다.
+# 차단은 하지 않는다: 다른 java 워크로드(keycloak, strimzi 등)의 오탐을 먼저 본다. 차단은 ns 별 TracingPolicyNamespaced 로.
+# 훅: security_bprm_creds_for_exec = 새 프로그램 실행 직전 (fork 된 자식이 아직 "java" 인 시점).
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: webshell-audit
+spec:
+  kprobes:
+    - call: security_bprm_creds_for_exec
+      syscall: false
+      args:
+        - { index: 0, type: linux_binprm }
+      selectors:
+        - matchBinaries:
+            - operator: Postfix
+              values: [/java, /php, /php-fpm, /php-cgi, /apache2, /httpd, /nginx]
+          matchArgs:
+            - index: 0
+              operator: Postfix
+              values: [/sh, /bash, /dash, /ash, /zsh, /ksh, /curl, /wget, /nc, /ncat, /netcat, /socat, /busybox, /perl, /python, /python3]

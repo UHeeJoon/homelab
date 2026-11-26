@@ -1,0 +1,39 @@
+# apps/operators/tetragon.yaml — [Helm형 leaf]
+# Tetragon: eBPF 런타임 보안 (프로세스 실행, 파일, 연결을 커널에서 본다). Cilium 과 같은 팀, 같은 차트 저장소.
+# 정책(TracingPolicy)은 따로 둔다: 클러스터 전체 기록용은 components/operators/tetragon-policies,
+# 차단(Sigkill)은 테넌트가 자기 ns 에 TracingPolicyNamespaced 로 (kube-chatops-deploy demo/security).
+# 이벤트: JSON → export-stdout 컨테이너 → Alloy → Loki ({namespace="kube-system", container="export-stdout"})
+# 지표: tetragon_policy_events_total{policy, namespace(대상 파드), pod, binary} → Prometheus (honorLabels)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tetragon
+  namespace: cicd
+  labels: { category: operators }
+spec:
+  project: operators
+  source:
+    repoURL: https://helm.cilium.io
+    chart: tetragon
+    targetRevision: 1.8.0
+    helm:
+      valuesObject:
+        tetragon:
+          resources: { requests: { cpu: 50m, memory: 192Mi }, limits: { memory: 768Mi } }
+          # Loki 로 보내는 양을 줄인다: 정책에 걸린 이벤트는 전부, 실행 기록은 demo 만 (조사 근거용).
+          # 기본값은 모든 ns 의 모든 실행·종료를 내보내 로그가 크게 는다.
+          exportAllowList: |-
+            {"event_set":["PROCESS_KPROBE","PROCESS_TRACEPOINT","PROCESS_LSM","PROCESS_UPROBE"]}
+            {"event_set":["PROCESS_EXEC"],"namespace":["demo"]}
+          prometheus:
+            serviceMonitor: { enabled: true }
+        export:
+          resources: { requests: { cpu: 10m, memory: 32Mi }, limits: { memory: 128Mi } }
+        tetragonOperator:
+          resources: { requests: { cpu: 10m, memory: 64Mi }, limits: { memory: 256Mi } }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true ]

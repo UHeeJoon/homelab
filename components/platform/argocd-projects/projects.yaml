@@ -20,7 +20,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata: { name: operators, namespace: cicd }
 spec:
-  description: "오퍼레이터 — longhorn·vault·eso·cnpg·strimzi·eck·minio-operator·cert-manager·kserve·argo-workflows"
+  description: "오퍼레이터 — longhorn·vault·eso·cnpg·strimzi·eck·minio-operator·cert-manager·kserve·argo-workflows·tetragon"
   sourceRepos:
     - https://github.com/UHeeJoon/homelab.git
     - https://charts.longhorn.io
@@ -33,6 +33,7 @@ spec:
     - https://charts.jetstack.io
     - https://argoproj.github.io/argo-helm
     - ghcr.io/kserve/charts
+    - https://helm.cilium.io
   destinations: [{ server: "*", namespace: "*" }]
   clusterResourceWhitelist: [{ group: "*", kind: "*" }]
   namespaceResourceWhitelist: [{ group: "*", kind: "*" }]
