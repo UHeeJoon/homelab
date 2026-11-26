@@ -49,6 +49,7 @@ Argo CD 화면에서는 AppProject(분류별 1개)로 묶어서 봅니다.
 | 항목 | 값 |
 |---|---|
 | 노드 | `kube-master` 192.168.123.105 (control-plane), `kube-worker` 192.168.123.100 (둘 다 고정 IP) |
+| 노드 간 통신 | 랜선 직결 (`eno1` 2.5G). 노드 IP와 API 서버는 `10.10.10.1`(master) / `10.10.10.2`(worker). WiFi 주소는 인터넷과 노트북 kubectl 용 |
 | 네트워크 | Cilium (kube-proxy 대체, LB-IPAM, Gateway API) |
 | LoadBalancer IP | 192.168.123.200-210 |
 | 외부 진입 | `public-gateway` .201, `admin-gateway` .202 → Cloudflare Tunnel → `*.ascode.click` |
