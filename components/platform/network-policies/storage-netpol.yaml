@@ -61,3 +61,22 @@ spec:
     - fromEntities: [ingress]
   egress:
     - toEntities: [kube-apiserver]
+---
+# kube-chatops MLOps (mlops ns) → MinIO 만 허용. 학습 파이프라인, MLflow, KServe 모델 다운로드가 쓴다.
+# storage-netpol 처럼 ns 전체를 열면 mongodb, redis 까지 닿으므로 MinIO 파드만 고른다.
+# MinIO 쪽 권한은 버킷 mlops 하나로 묶인 전용 사용자 (components/data/minio-provision).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-from-mlops
+  namespace: storage
+spec:
+  podSelector:
+    matchLabels: { v1.min.io/tenant: myminio }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: mlops }
+      ports:
+        - { port: 9000, protocol: TCP }

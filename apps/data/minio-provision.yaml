@@ -1,0 +1,20 @@
+# apps/data/minio-provision.yaml — [매니페스트형 leaf] git 디렉토리 적용
+# MinIO 버킷·사용자·정책을 Job(PostSync 훅)으로 맞춘다. 지금은 kube-chatops MLOps 용 버킷 mlops.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio-provision
+  namespace: cicd
+  labels: { category: data }
+spec:
+  project: data
+  source:
+    repoURL: https://github.com/UHeeJoon/homelab.git
+    targetRevision: release
+    path: components/data/minio-provision
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: storage
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ ServerSideApply=true ]
