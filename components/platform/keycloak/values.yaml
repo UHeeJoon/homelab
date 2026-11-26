@@ -21,6 +21,10 @@ extraEnvVars:
     value: "https://auth.ascode.click"
   - name: KC_HTTP_ENABLED # tls 끈 상태에서 HTTP 리스너 허용
     value: "true"
+  - name: KC_EVENT_METRICS_USER_ENABLED # 로그인 성공·실패 수 지표 keycloak_user_events_total (무차별 대입 탐지, 11-27)
+    value: "true"
+  - name: KC_EVENT_METRICS_USER_TAGS # realm·이벤트·오류만 (client/idp 는 뺌: 라벨 수 억제)
+    value: "realm"
 
 # 관리자 자격: Vault → ESO 가 만든 Secret 에서 읽음 (git 평문 0)
 auth:
