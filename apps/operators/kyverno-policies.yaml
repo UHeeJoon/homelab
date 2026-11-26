@@ -4,6 +4,9 @@ kind: Application
 metadata:
   name: kyverno-policies
   namespace: cicd
+  annotations:
+    # CRD 가 채우는 기본값(return: false 등)을 차이로 보지 않게 서버 쪽 비교를 쓴다 (없으면 계속 OutOfSync)
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
   labels: { category: operators }
 spec:
   project: operators
