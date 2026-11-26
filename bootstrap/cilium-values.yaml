@@ -7,16 +7,22 @@
 #     helm upgrade --install cilium cilium/cilium --version 1.19.4 \
 #       -n kube-system -f bootstrap/cilium-values.yaml
 
-# ── 데이터패스: native routing (같은 /24 L2, 오버레이 없음) ──
+# ── 데이터패스: VXLAN 터널 (실제 설치 상태, 11-27 파일을 맞춤) ──
+#   노드 2대가 직결선(eno1, 10.10.10.0/30)으로 같은 L2 라서 native routing 이 더 낫다 (캡슐화 없음, MTU 1500).
+#   전환은 노드 간 통신이 끊기는 작업이라 runbook 으로 따로 한다: langGraph docs/cilium-native-routing-runbook.md
 ipam:
   mode: cluster-pool
   operator:
     clusterPoolIPv4PodCIDRList: ["10.244.0.0/16"]
     clusterPoolIPv4MaskSize: 24
-routingMode: native
-autoDirectNodeRoutes: true
-ipv4NativeRoutingCIDR: "10.244.0.0/16"
+routingMode: tunnel
+tunnelProtocol: vxlan
+autoDirectNodeRoutes: false
+ipv4NativeRoutingCIDR: "10.244.0.0/16" # 터널에서도 설치 때부터 있던 값 (이 대역은 SNAT 안 함). native 전환 때 그대로 쓴다
+MTU: 1350 # 설치 때 지정된 값 (출처 기록 없음). 바꾸면 새 파드부터 적용 → native 전환 때 1500 으로
 enableIPv4Masquerade: true
+bpf:
+  masquerade: true
 
 # ── CNI: Cilium 단독 ──
 cni:
@@ -49,6 +55,21 @@ gatewayAPI:
 # ── 관측 (Hubble — netpol drop 디버깅에 바로 사용) ──
 hubble:
   enabled: true
+  # 흐름 지표 (11-27, 보안 S-9): 횡이동·외부 연결·포트 스캔·정책 차단을 Prometheus 로.
+  # 라벨은 namespace/workload 단위로만 (파드·IP 단위는 시계열이 폭증). 외부 목적지는 DNS 이름(없으면 IP).
+  metrics:
+    enableOpenMetrics: true
+    serviceMonitor:
+      enabled: true
+    enabled:
+      - dns:query;ignoreAAAA
+      - drop:labelsContext=source_namespace,source_workload,destination_namespace,destination_workload
+      - flow:labelsContext=source_namespace,source_workload,destination_namespace,destination_workload
+      - tcp:labelsContext=source_namespace,source_workload,destination_namespace,destination_workload
+      - port-distribution:labelsContext=source_namespace,destination_namespace
+      - icmp
+      - flows-to-world:sourceContext=namespace;destinationContext=dns|ip;port;any-drop
+      - httpV2:exemplars=true;labelsContext=source_namespace,source_workload,destination_namespace,destination_workload,traffic_direction
   relay:
     enabled: true
     resources:
