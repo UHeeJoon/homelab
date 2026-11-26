@@ -7,19 +7,19 @@
 #     helm upgrade --install cilium cilium/cilium --version 1.19.4 \
 #       -n kube-system -f bootstrap/cilium-values.yaml
 
-# ── 데이터패스: VXLAN 터널 (실제 설치 상태, 11-27 파일을 맞춤) ──
-#   노드 2대가 직결선(eno1, 10.10.10.0/30)으로 같은 L2 라서 native routing 이 더 낫다 (캡슐화 없음, MTU 1500).
-#   전환은 노드 간 통신이 끊기는 작업이라 runbook 으로 따로 한다: langGraph docs/cilium-native-routing-runbook.md
+# ── 데이터패스: native routing (11-27 VXLAN 터널에서 전환) ──
+#   노드 2대가 직결선(eno1, 10.10.10.0/30)으로 같은 L2 라서 파드 트래픽을 감싸지 않고 그대로 라우팅한다 (캡슐화 없음, MTU 1500).
+#   autoDirectNodeRoutes 는 노드가 같은 L2 에 있을 때만 된다. 다른 네트워크의 노드를 붙이면 터널로 되돌려야 한다.
+#   전환·되돌리기 절차: langGraph docs/cilium-native-routing-runbook.md
 ipam:
   mode: cluster-pool
   operator:
     clusterPoolIPv4PodCIDRList: ["10.244.0.0/16"]
     clusterPoolIPv4MaskSize: 24
-routingMode: tunnel
-tunnelProtocol: vxlan
-autoDirectNodeRoutes: false
-ipv4NativeRoutingCIDR: "10.244.0.0/16" # 터널에서도 설치 때부터 있던 값 (이 대역은 SNAT 안 함). native 전환 때 그대로 쓴다
-MTU: 1350 # 설치 때 지정된 값 (출처 기록 없음). 바꾸면 새 파드부터 적용 → native 전환 때 1500 으로
+routingMode: native
+autoDirectNodeRoutes: true # 상대 노드의 파드 /24 를 eno1 의 상대 IP 로 라우팅
+ipv4NativeRoutingCIDR: "10.244.0.0/16" # 이 대역은 SNAT 하지 않는다
+# MTU 는 지정하지 않는다 (장치 MTU 1500 을 자동으로 씀. 터널 때는 1350 이었다)
 enableIPv4Masquerade: true
 bpf:
   masquerade: true
