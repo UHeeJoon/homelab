@@ -1,7 +1,7 @@
 # 프로세스 메모리 조작 의심 (클러스터 전체, 기록만). 새 프로그램을 띄우지 않고 이미 도는 프로세스 안으로 들어가는 길을 본다.
 # 실행·파일 쓰기 규칙(webshell, dropper, privesc, webroot-tamper)에는 걸리지 않는 공격이다 (11-27 추가).
 #
-# 1) ptrace 로 다른 프로세스에 붙거나 메모리·레지스터를 고침: ATTACH(16), SEIZE(16902), POKETEXT(4), POKEDATA(5), SETREGS(13)
+# 1) ptrace 로 다른 프로세스에 붙거나 메모리를 고침: ATTACH(16), SEIZE(16902), POKETEXT(4), POKEDATA(5). 레지스터를 고치려면 먼저 붙어야 해서 붙는 시점에 잡힌다
 # 2) process_vm_writev: 다른 프로세스 메모리에 직접 쓰기 (정상 사용처가 거의 없다)
 # 3) /proc/<pid>/mem, /dev/mem, /dev/kmem 열기: 메모리를 파일처럼 읽고 쓰는 길. 읽기만 해도 비밀 값(토큰, 키)을 꺼낼 수 있어 열기부터 기록한다
 # 4) /etc/ld.so.preload 쓰기: 이후 뜨는 모든 프로그램에 라이브러리를 끼워 넣는다
@@ -26,7 +26,7 @@ spec:
         - matchArgs:
             - index: 0
               operator: Equal
-              values: ["4", "5", "13", "16", "16902"]
+              values: ["4", "5", "16", "16902"] # 선택자 하나에 값은 4개까지 (Tetragon 1.8)
     - call: sys_process_vm_writev
       syscall: true
       args:
