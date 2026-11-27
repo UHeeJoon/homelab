@@ -19,7 +19,8 @@ spec:
     helm:
       valuesObject:
         tetragon:
-          resources: { requests: { cpu: 50m, memory: 192Mi }, limits: { memory: 768Mi } }
+          # 감사 정책 4개 + demo 차단 4개를 올린 뒤 530~605Mi (11-27). 768Mi 로는 여유가 없어 1Gi 로 올렸다.
+          resources: { requests: { cpu: 50m, memory: 192Mi }, limits: { memory: 1Gi } }
           # 쓰기 거부(Override)를 쓰려면 kprobe_multi 를 꺼야 한다. 이 커널(el10 6.12)은 bpf_override_return 이 없어
           # Tetragon 이 fmod_ret 로 대신하는데, kprobe_multi 로 붙인 함수는 Override 가 거부된다.
           # BPF LSM 훅(lsmhooks)은 Tetragon 1.8 의 프로그램이 이 커널 검증기 한도를 넘어 로드되지 않는다 (11-27 확인).
