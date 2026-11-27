@@ -1,6 +1,6 @@
 # apps/operators/tetragon.yaml — [Helm형 leaf]
 # Tetragon: eBPF 런타임 보안 (프로세스 실행, 파일, 연결을 커널에서 본다). Cilium 과 같은 팀, 같은 차트 저장소.
-# 정책(TracingPolicy)은 따로 둔다: 클러스터 전체 기록용(웹셸, 투하 실행, 권한 상승, 파일 변조)은 components/operators/tetragon-policies,
+# 정책(TracingPolicy)은 따로 둔다: 클러스터 전체 기록용(웹셸, 투하 실행, 권한 상승, 파일 변조, 메모리 조작)은 components/operators/tetragon-policies,
 # 차단(Sigkill)은 테넌트가 자기 ns 에 TracingPolicyNamespaced 로 (kube-chatops-deploy demo/security).
 # 이벤트: JSON → export-stdout 컨테이너 → Alloy → Loki ({namespace="kube-system", container="export-stdout"})
 # 지표: tetragon_policy_events_total{policy, namespace(대상 파드), pod, binary} → Prometheus (honorLabels)

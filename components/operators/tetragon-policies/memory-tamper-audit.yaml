@@ -1,0 +1,59 @@
+# 프로세스 메모리 조작 의심 (클러스터 전체, 기록만). 새 프로그램을 띄우지 않고 이미 도는 프로세스 안으로 들어가는 길을 본다.
+# 실행·파일 쓰기 규칙(webshell, dropper, privesc, webroot-tamper)에는 걸리지 않는 공격이다 (11-27 추가).
+#
+# 1) ptrace 로 다른 프로세스에 붙거나 메모리·레지스터를 고침: ATTACH(16), SEIZE(16902), POKETEXT(4), POKEDATA(5), SETREGS(13)
+# 2) process_vm_writev: 다른 프로세스 메모리에 직접 쓰기 (정상 사용처가 거의 없다)
+# 3) /proc/<pid>/mem, /dev/mem, /dev/kmem 열기: 메모리를 파일처럼 읽고 쓰는 길. 읽기만 해도 비밀 값(토큰, 키)을 꺼낼 수 있어 열기부터 기록한다
+# 4) /etc/ld.so.preload 쓰기: 이후 뜨는 모든 프로그램에 라이브러리를 끼워 넣는다
+#
+# 보지 않는 것과 이유:
+# - mprotect 로 쓰기+실행 영역 만들기: JIT 런타임(java, node, .NET)이 평소에 계속 해서 구분이 안 된다
+# - memfd_create: 컨테이너 런타임과 여러 라이브러리가 쓴다. memfd 에서 "실행" 하는 것은 dropper-audit 가 이미 기록한다
+# - 프로세스 안에서만 끝나는 것(메모리 웹셸, 역직렬화로 올린 코드): 커널 호출이 평소와 같아 여기서는 안 보인다. WAF 와 앱이 맡는다
+# 디버깅(strace, gdb, 프로파일러)도 걸린다. 그래서 차단 전에 무엇이 걸리는지 먼저 본다.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: memory-tamper-audit
+spec:
+  kprobes:
+    - call: sys_ptrace
+      syscall: true
+      args:
+        - { index: 0, type: int64 }
+        - { index: 1, type: int }
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Equal
+              values: ["4", "5", "13", "16", "16902"]
+    - call: sys_process_vm_writev
+      syscall: true
+      args:
+        - { index: 0, type: int }
+    - call: security_file_open
+      syscall: false
+      args:
+        - { index: 0, type: file }
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Postfix
+              values: [/mem, /kmem]
+          matchActions:
+            - action: Post
+              rateLimit: "5m"
+              rateLimitScope: "process"
+    - call: security_file_permission
+      syscall: false
+      args:
+        - { index: 0, type: file }
+        - { index: 1, type: int }
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Equal
+              values: [/etc/ld.so.preload]
+            - index: 1
+              operator: Mask
+              values: ["10"] # MAY_WRITE(2) | MAY_APPEND(8)
