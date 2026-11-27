@@ -77,8 +77,14 @@ alertmanager:
                             credentials_file: /etc/alertmanager/secrets/alertmanager-slack/bot_token
                     color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}danger{{ else }}warning{{ end }}{{ else }}good{{ end }}'
                     title: '{{ if eq .Status "firing" }}[발생]{{ else }}[해소]{{ end }} {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }}{{ with .CommonLabels.namespace }}, {{ . }}{{ end }})'
+                    # 제목을 누르면 가는 곳. 기본값은 Alertmanager 자기 주소(클러스터 안에서만 열리는 http://...alertmanager.monitoring:9093)라
+                    # Slack 에서 눌러도 열리지 않았다. 밖에서 열리는 Grafana 의 알림 규칙 화면(이 알림 이름으로 검색)으로 보낸다.
+                    title_link: 'https://grafana.ascode.click/alerting/list?search={{ .CommonLabels.alertname | urlquery }}'
+                    # 알림마다: 요약, 어디서(네임스페이스·파드·노드), 설명, 시작 시각(KST), 대응 문서 링크(기본 규칙에 들어 있는 runbook_url).
                     text: |-
-                        {{ range .Alerts }}• {{ or .Annotations.summary .Annotations.description .Labels.alertname }}{{ with .Labels.pod }} — `{{ . }}`{{ end }}{{ with .Labels.job }} ({{ . }}){{ end }}
+                        {{ range .Alerts }}• *{{ or .Annotations.summary .Labels.alertname }}*{{ with .Labels.namespace }} · `{{ . }}`{{ end }}{{ with .Labels.pod }} · `{{ . }}`{{ end }}{{ with .Labels.node }} · 노드 `{{ . }}`{{ end }}
+                        {{ with .Annotations.description }}    {{ reReplaceAll "\\s+" " " . }}
+                        {{ end }}    시작 {{ (.StartsAt.Add 32400000000000).Format "01-02 15:04" }} KST{{ with .Annotations.runbook_url }} · <{{ . }}|대응 문서>{{ end }}
                         {{ end }}
     alertmanagerSpec:
         secrets: [alertmanager-slack]
