@@ -17,6 +17,17 @@ spec:
             - index: 0
               operator: Postfix
               values: [/su, /sudo, /pkexec, /doas, /nsenter, /unshare, /capsh, /setcap, /chroot]
+    # busybox 계열 이미지(alpine 등)는 /bin/su 가 busybox 로 가는 링크라, 위 훅이 보는 실제 실행 파일은 /bin/busybox 다 (11-27 확인: 잡히지 않음).
+    # 시스템 호출에 넘긴 경로(링크를 따라가기 전)로도 본다. `busybox su` 처럼 직접 부르는 것은 여전히 못 잡는다.
+    - call: sys_execve
+      syscall: true
+      args:
+        - { index: 0, type: string }
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Postfix
+              values: [/su, /sudo, /pkexec, /doas, /nsenter, /unshare, /capsh, /setcap, /chroot]
     - call: security_path_chmod
       syscall: false
       args:
