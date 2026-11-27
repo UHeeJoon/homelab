@@ -1,0 +1,29 @@
+# 권한 상승 시도 의심 (클러스터 전체, 기록만): 권한을 바꾸는 도구 실행과 setuid/setgid 비트 설정.
+# 컨테이너 안에서 su·sudo·nsenter 를 쓸 정상 이유는 드물다 (entrypoint 가 gosu/su-exec 로 사용자를 바꾸는 이미지는 걸리지 않는다: 목록에 없음).
+# 차단은 demo 의 TracingPolicyNamespaced privesc-block 이 한다. 여기서는 다른 네임스페이스에서 무엇이 걸리는지 먼저 본다 (11-27).
+# 노드에서 사람이 쓰는 sudo 도 걸린다 (지표의 namespace 가 빈 값). 알림을 만들 때는 namespace!="" 로 거른다.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: privesc-audit
+spec:
+  kprobes:
+    - call: security_bprm_creds_for_exec
+      syscall: false
+      args:
+        - { index: 0, type: linux_binprm }
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Postfix
+              values: [/su, /sudo, /pkexec, /doas, /nsenter, /unshare, /capsh, /setcap, /chroot]
+    - call: security_path_chmod
+      syscall: false
+      args:
+        - { index: 0, type: path }
+        - { index: 1, type: int }
+      selectors:
+        - matchArgs:
+            - index: 1
+              operator: Mask
+              values: ["3072"] # S_ISUID(04000) | S_ISGID(02000)

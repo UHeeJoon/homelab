@@ -1,0 +1,30 @@
+# 웹 루트·시스템 경로 변조 의심 (클러스터 전체, 기록만): 웹 서버·런타임 프로세스가 /var/www, /etc, /usr 에 쓰기.
+# 업로드 취약점으로 웹셸 파일을 심거나 설정·바이너리를 바꾸는 단계다. 차단(쓰기 거부)은 demo 의 webroot-tamper-block 이 한다.
+# 여기서는 기록만 한다: 시작할 때 /etc 에 설정을 쓰는 이미지(nginx 템플릿 등)가 흔해 차단 전에 무엇이 걸리는지 봐야 한다 (11-27).
+# 쓰기마다 지나는 훅이라 같은 프로세스의 반복은 5분에 한 번만 기록한다. /app 은 앱마다 쓰임이 달라 클러스터 기록에서는 뺀다.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: webroot-tamper-audit
+spec:
+  kprobes:
+    - call: security_file_permission
+      syscall: false
+      args:
+        - { index: 0, type: file }
+        - { index: 1, type: int }
+      selectors:
+        - matchBinaries:
+            - operator: Postfix
+              values: [/java, /php, /php-fpm, /php-cgi, /apache2, /httpd, /nginx, /node]
+          matchArgs:
+            - index: 0
+              operator: Prefix
+              values: [/var/www/, /etc/, /usr/]
+            - index: 1
+              operator: Mask
+              values: ["10"] # MAY_WRITE(2) | MAY_APPEND(8)
+          matchActions:
+            - action: Post
+              rateLimit: "5m"
+              rateLimitScope: "process"
